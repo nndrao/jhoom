@@ -1,18 +1,25 @@
-import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine # pip install SQLAlchemy
+from sqlalchemy.engine import URL
+import pypyodbc # pip install pypyodbc
+import pandas as pd # pip install pandas
 
-# Parameters
-excel_file_path = 'path_to_your_excel_file.xlsx'
-database_connection_url = 'mssql+pyodbc://your_username:your_password@your_server_address/your_database?driver=SQL+Server'
-table_name = 'your_new_table_name'
+SERVER_NAME = '<SERVER NAME>'
+DATABASE_NAME = '<DATABASE NAME>'
+TABLE_NAME = '<TARGET TABLE NAME>'
 
-# Load Excel file into DataFrame
-df = pd.read_excel(excel_file_path)
+excel_file = '<file path>'
 
-# Create SQL Alchemy engine
-engine = create_engine(database_connection_url)
+connection_string = f"""
+    DRIVER={{SQL Server}};
+    SERVER={SERVER_NAME};
+    DATABASE={DATABASE_NAME};
+    Trusted_Connection=yes;
+"""
+connection_url = URL.create('mssql+pyodbc', query={'odbc_connect': connection_string})
+enigne = create_engine(connection_url, module=pypyodbc)
 
-# Use 'if_exists' parameter as 'fail' to ensure a new table is created, 'replace' to overwrite existing
-df.to_sql(table_name, engine, if_exists='fail', index=False)
-
-# No need to explicitly manage connection lifecycle with sqlalchemy
+excel_file = pd.read_excel(excel_file, sheet_name=None)
+for sheet_name, df_data in excel_file.items():
+    print(f'Loading worksheet {sheet_name}...')
+    # {'fail', 'replace', 'append'}
+    df_data.to_sql(TABLE_NAME, enigne, if_exists='append', index=False)
